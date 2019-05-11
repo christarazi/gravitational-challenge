@@ -22,9 +22,10 @@ type Job struct {
 	ID      uint64   `json:"id"`
 	Command string   `json:"command"`
 	Args    []string `json:"args"`
-	// Stdout  []byte   `json:"stdout"`
-	// Stderr  []byte   `json:"stderr"`
-	Status string `json:"status"`
+	Status  string   `json:"status"`
+
+	// TODO: This struct will need a have a field representing the underlying
+	// process.
 }
 
 // Jobs holds all the processes that were requested to start by the client.

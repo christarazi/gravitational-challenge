@@ -102,7 +102,7 @@ func StartJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: This will need a mutex around // it.
+	// TODO: This will need a mutex around it.
 	models.Jobs = append(models.Jobs, j)
 	j.ID = uint64(len(models.Jobs))
 
@@ -160,13 +160,13 @@ func StopJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: // Actually stop running the job here.
+	// TODO: Actually stop running the job here.
 	log.Printf("/stop: stopped job with id %d", id)
 
-	// TODO: // Need a mutex here.
+	// TODO: Need a mutex here.
 	j := models.Jobs[id-1]
 
-	// TODO: // Actually get the exit code here.
+	// TODO: Actually get the exit code here.
 	j.Status = fmt.Sprintf("Stopped (ec: %d)", 42)
 
 	err = json.NewEncoder(w).Encode([]byte{})
