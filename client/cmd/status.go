@@ -34,7 +34,7 @@ import (
 // statusCmd represents the status command
 var statusCmd = &cobra.Command{
 	Use:   "status [Job ID]",
-	Short: "Retrieve the status of a job",
+	Short: "Retrieve the status of all jobs or a single job based on ID",
 	Long: `This command supports taking in a Job ID which will retrieve the
 status of that job, or when given no arguments, it will return all the
 jobs.`,
@@ -56,8 +56,8 @@ jobs.`,
 	},
 }
 
-// This is the response data structure when the user does not supply an
-// argument. All the jobs will be returned.
+// This is the response data structure when the user does not supply a Job ID.
+// All the jobs will be returned.
 type allStatusResponse struct {
 	Jobs []struct {
 		ID      uint64   `json:"id"`
@@ -67,7 +67,7 @@ type allStatusResponse struct {
 	} `json:"jobs"`
 }
 
-// This is the response data structure when the user supplies an argument. The
+// This is the response data structure when the user supplies a Job ID. The
 // single status of the job will be returned.
 type statusResponse struct {
 	Status string `json:"status"`
