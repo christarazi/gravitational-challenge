@@ -47,6 +47,25 @@ func validateID(id uint64) error {
 	return nil
 }
 
+func GetAllJobStatus(w http.ResponseWriter, r *http.Request) {
+	// TODO: Move this out into a separate file.
+	// TODO: Mutex here.
+	statusResponse := struct {
+		Jobs *[]*models.Job `json:"jobs"`
+	}{Jobs: &models.Jobs}
+
+	err := json.NewEncoder(w).Encode(statusResponse)
+	if err != nil {
+		msg := fmt.Sprintf("/status error: %v", err)
+		log.Println(msg)
+
+		// TODO: Return API specific error codes. For example, if no jobs
+		// exist, it would be 4xx.
+		http.Error(w, msg, http.StatusBadRequest)
+		return
+	}
+}
+
 func GetJobStatus(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	log.Printf("/status vars: %v\n", vars)

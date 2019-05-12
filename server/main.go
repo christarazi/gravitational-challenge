@@ -28,6 +28,7 @@ import (
 
 func main() {
 	router := mux.NewRouter()
+	router.HandleFunc("/status", api.GetAllJobStatus).Methods("GET")
 	router.HandleFunc("/status/{id:[0-9]+}", api.GetJobStatus).Methods("GET")
 	router.HandleFunc("/start", api.StartJob).Methods("POST")
 	router.HandleFunc("/stop", api.StopJob).Methods("POST")

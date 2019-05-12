@@ -23,7 +23,11 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
@@ -34,27 +38,49 @@ var statusCmd = &cobra.Command{
 	Long: `This command supports taking in a Job ID which will retrieve the
 status of that job, or when given no arguments, it will return all the
 jobs.`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Validate the arg is a number.
-		doStatus(args)
+		if len(args) == 0 {
+			doAllStatus()
+		} else {
+			id, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: '%s' is not an integer\n", args[0])
+				os.Exit(1)
+			} else if id <= 0 {
+				fmt.Fprintln(os.Stderr, "Error: integer can only be greater than 0")
+				os.Exit(1)
+			}
+			doStatus(id)
+		}
 	},
 }
 
+// This is the response data structure when the user does not supply an
+// argument. All the jobs will be returned.
+type allStatusResponse struct {
+	Jobs []struct {
+		ID      uint64   `json:"id"`
+		Command string   `json:"command"`
+		Args    []string `json:"args"`
+		Status  string   `json:"status"`
+	} `json:"jobs"`
+}
+
+// This is the response data structure when the user supplies an argument. The
+// single status of the job will be returned.
 type statusResponse struct {
 	Status string `json:"status"`
 }
 
-func doStatus(args []string) {
-	uri := fmt.Sprintf("http://0.0.0.0:8080/status/%v", args[0])
+func do(uri string) *http.Response {
 	resp, err := http.Get(uri)
 	if err != nil {
 		log.Fatalf("Error getting response: %v", err)
 	}
 
-	defer resp.Body.Close()
-
 	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Fatalf("Error reading body of response: %v", err)
@@ -63,8 +89,40 @@ func doStatus(args []string) {
 		log.Fatalf("Server returned %d: %v", resp.StatusCode, string(body))
 	}
 
+	return resp
+}
+
+func doAllStatus() {
+	uri := fmt.Sprintf("http://0.0.0.0:8080/status")
+
+	resp := do(uri)
+	defer resp.Body.Close()
+
+	asr := &allStatusResponse{}
+	err := json.NewDecoder(resp.Body).Decode(asr)
+	if err != nil {
+		log.Fatalf("Error decoding response: %v", err)
+	}
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"ID", "Command", "Args", "Status"})
+
+	for _, v := range asr.Jobs {
+		str := fmt.Sprintf("%d|%s|%v|%s", v.ID, v.Command, v.Args, v.Status)
+		table.Append(strings.Split(str, "|"))
+	}
+
+	table.Render()
+}
+
+func doStatus(id uint64) {
+	uri := fmt.Sprintf("http://0.0.0.0:8080/status/%d", id)
+
+	resp := do(uri)
+	defer resp.Body.Close()
+
 	sr := &statusResponse{}
-	err = json.NewDecoder(resp.Body).Decode(sr)
+	err := json.NewDecoder(resp.Body).Decode(sr)
 	if err != nil {
 		log.Fatalf("Error decoding response: %v", err)
 	}
