@@ -18,8 +18,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/christarazi/gravitational-challenge/server/api"
 
@@ -32,5 +36,30 @@ func main() {
 	router.HandleFunc("/status/{id:[0-9]+}", api.GetJobStatus).Methods("GET")
 	router.HandleFunc("/start", api.StartJob).Methods("POST")
 	router.HandleFunc("/stop", api.StopJob).Methods("POST")
-	log.Fatal(http.ListenAndServe(":8080", router))
+
+	// Set up signal handlers for the following signals for graceful shutdown.
+	stopCh := make(chan os.Signal, 1)
+	signal.Notify(stopCh, []os.Signal{
+		os.Interrupt,
+		syscall.SIGABRT,
+		syscall.SIGQUIT,
+		syscall.SIGTERM}...)
+
+	// TODO: This is hard coded for now. In the future, we can have a
+	// configurable address / port number.
+	port := "8080"
+	server := &http.Server{Addr: ":" + port, Handler: router}
+
+	go func() {
+		log.Printf("Listening on http://0.0.0.0:%s\n", port)
+
+		if err := server.ListenAndServe(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+	<-stopCh
+
+	log.Println("Shutting down the server...")
+	server.Shutdown(context.Background())
+	log.Println("Server gracefully shutdown")
 }
