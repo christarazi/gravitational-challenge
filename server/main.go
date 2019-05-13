@@ -55,6 +55,8 @@ func main() {
 	<-stopCh
 
 	log.Println("Shutting down the server...")
-	server.Shutdown(context.Background())
+	if err := server.Shutdown(context.Background()); err != nil {
+		log.Fatalf("Server failed to shutdown gracefully: %v", err)
+	}
 	log.Println("Server gracefully shutdown")
 }
