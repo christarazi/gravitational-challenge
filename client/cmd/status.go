@@ -71,28 +71,6 @@ type statusResponse struct {
 	Status string `json:"status"`
 }
 
-func do(uri string) *http.Response {
-	resp, err := http.Get(uri)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting response: %v", err)
-		os.Exit(1)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading body of response: %v", err)
-			os.Exit(1)
-		}
-
-		fmt.Fprintf(os.Stderr, "Server returned %d: %v", resp.StatusCode, string(body))
-		os.Exit(1)
-	}
-
-	return resp
-}
-
 func doAllStatus() {
 	uri := fmt.Sprintf("http://0.0.0.0:8080/status")
 
@@ -131,6 +109,28 @@ func doStatus(id uint64) {
 	}
 
 	fmt.Printf("%s\n", sr.Status)
+}
+
+func do(uri string) *http.Response {
+	resp, err := http.Get(uri)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting response: %v", err)
+		os.Exit(1)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading body of response: %v", err)
+			os.Exit(1)
+		}
+
+		fmt.Fprintf(os.Stderr, "Server returned %d: %v", resp.StatusCode, string(body))
+		os.Exit(1)
+	}
+
+	return resp
 }
 
 func init() {
