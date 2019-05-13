@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package api
+package handler
 
 import (
 	"encoding/json"
@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/christarazi/gravitational-challenge/server/manager"
 	"github.com/christarazi/gravitational-challenge/server/models"
 
 	"github.com/gorilla/mux"
@@ -38,23 +39,22 @@ func convertIDToUint(str string) (uint64, error) {
 	return id, nil
 }
 
-func validateID(id uint64) error {
-	// TODO: This needs a mutex if accessing global Jobs
-	if (id - 1) >= uint64(len(models.Jobs)) {
-		return fmt.Errorf("job with id %v does not exit", id)
-	}
+// TODO: Should these different handlers go in their separate files?
 
-	return nil
-}
+func GetAllJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
+	m.Mutex.Lock()
 
-func GetAllJobStatus(w http.ResponseWriter, r *http.Request) {
 	// TODO: Move this out into a separate file.
-	// TODO: Mutex here.
 	statusResponse := struct {
 		Jobs *[]*models.Job `json:"jobs"`
-	}{Jobs: &models.Jobs}
+	}{Jobs: &m.Jobs}
 
+	// TODO: This is subtle. If I unlock before the encoding, there's a race
+	// condition here. Is it better to give statusResponse a copy of the list
+	// instead of using the mutex to protect the encoding?
 	err := json.NewEncoder(w).Encode(statusResponse)
+	m.Mutex.Unlock()
+
 	if err != nil {
 		msg := fmt.Sprintf("/status error: %v", err)
 		log.Println(msg)
@@ -66,7 +66,7 @@ func GetAllJobStatus(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetJobStatus(w http.ResponseWriter, r *http.Request) {
+func GetJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	log.Printf("/status vars: %v\n", vars)
 
@@ -81,9 +81,8 @@ func GetJobStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = validateID(id)
-	if err != nil {
-		msg := fmt.Sprintf("/status error: %v", err)
+	if !m.IsAJob(id) {
+		msg := fmt.Sprintf("/status error: job with id %v does not exist", id)
 		log.Println(msg)
 
 		// TODO: Return API specific error codes. For example, if no jobs
@@ -92,8 +91,7 @@ func GetJobStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Mutex here.
-	j := models.Jobs[id-1]
+	j := m.GetJob(id - 1)
 
 	err = json.NewEncoder(w).Encode(j)
 	if err != nil {
@@ -107,7 +105,7 @@ func GetJobStatus(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func StartJob(w http.ResponseWriter, r *http.Request) {
+func StartJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	j := &models.Job{}
 
 	err := json.NewDecoder(r.Body).Decode(j)
@@ -121,22 +119,27 @@ func StartJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: This will need a mutex around it.
-	models.Jobs = append(models.Jobs, j)
-	j.ID = uint64(len(models.Jobs))
+	id, err := m.AddAndStartJob(j)
+	if err != nil {
+		msg := fmt.Sprintf("/start failed to start job %d: %v", id, err)
+		log.Println(msg)
 
-	log.Printf("/start: created new job with id %d", j.ID)
+		m.SetJobStatus(j, "Errored")
 
-	j.Status = "Running"
-	// TODO: Actually start running the job here.
-	log.Printf("/start: running job with id %d", j.ID)
+		// TODO: Return API specific error codes. For example, if no jobs
+		// exist, it would be 4xx.
+		http.Error(w, msg, http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("/start: running job with id %d", id)
 
 	// TODO: Move this out into a separate file.
 	type startResponse struct {
 		ID uint64 `json:"id"`
 	}
 
-	err = json.NewEncoder(w).Encode(startResponse{ID: j.ID})
+	err = json.NewEncoder(w).Encode(startResponse{ID: id})
 	if err != nil {
 		msg := fmt.Sprintf("/start error: %v", err)
 		log.Println(msg)
@@ -148,7 +151,7 @@ func StartJob(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func StopJob(w http.ResponseWriter, r *http.Request) {
+func StopJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	// TODO: Move this into separate file.
 	type stopRequest struct {
 		ID uint64 `json:"id"`
@@ -168,7 +171,17 @@ func StopJob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := request.ID
-	err = validateID(id)
+	if !m.IsAJob(id) {
+		msg := fmt.Sprintf("/stop error: job id %d does not exist", id)
+		log.Println(msg)
+
+		// TODO: Return API specific error codes. For example, if no jobs
+		// exist, it would be 4xx.
+		http.Error(w, msg, http.StatusBadRequest)
+		return
+	}
+
+	err = m.StopJob(id - 1)
 	if err != nil {
 		msg := fmt.Sprintf("/stop error: %v", err)
 		log.Println(msg)
@@ -179,14 +192,7 @@ func StopJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Actually stop running the job here.
-	log.Printf("/stop: stopped job with id %d", id)
-
-	// TODO: Need a mutex here.
-	j := models.Jobs[id-1]
-
-	// TODO: Actually get the exit code here.
-	j.Status = fmt.Sprintf("Stopped (ec: %d)", 42)
+	log.Printf("/stop: job %d stopped\n", id)
 
 	err = json.NewEncoder(w).Encode([]byte{})
 	if err != nil {

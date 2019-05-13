@@ -25,17 +25,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/christarazi/gravitational-challenge/server/api"
-
-	"github.com/gorilla/mux"
+	"github.com/christarazi/gravitational-challenge/server/app"
 )
 
 func main() {
-	router := mux.NewRouter()
-	router.HandleFunc("/status", api.GetAllJobStatus).Methods("GET")
-	router.HandleFunc("/status/{id:[0-9]+}", api.GetJobStatus).Methods("GET")
-	router.HandleFunc("/start", api.StartJob).Methods("POST")
-	router.HandleFunc("/stop", api.StopJob).Methods("POST")
+	app := app.App{}
+	app.Initialize()
 
 	// Set up signal handlers for the following signals for graceful shutdown.
 	stopCh := make(chan os.Signal, 1)
@@ -48,7 +43,7 @@ func main() {
 	// TODO: This is hard coded for now. In the future, we can have a
 	// configurable address / port number.
 	port := "8080"
-	server := &http.Server{Addr: ":" + port, Handler: router}
+	server := &http.Server{Addr: ":" + port, Handler: app.Router}
 
 	go func() {
 		log.Printf("Listening on http://0.0.0.0:%s\n", port)

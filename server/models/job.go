@@ -17,6 +17,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 package models
 
+import (
+	"os/exec"
+)
+
 // Job is the main data structure that API will utilize.
 type Job struct {
 	ID      uint64   `json:"id"`
@@ -24,12 +28,8 @@ type Job struct {
 	Args    []string `json:"args"`
 	Status  string   `json:"status"`
 
-	// TODO: This struct will need a have a field representing the underlying
-	// process.
+	Process *exec.Cmd
 }
-
-// Jobs holds all the processes that were requested to start by the client.
-var Jobs []*Job
 
 func NewJob(id uint64, command string, args []string) *Job {
 	return &Job{
@@ -37,5 +37,6 @@ func NewJob(id uint64, command string, args []string) *Job {
 		Command: command,
 		Args:    args,
 		Status:  "",
+		Process: nil,
 	}
 }
