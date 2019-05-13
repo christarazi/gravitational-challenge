@@ -39,17 +39,18 @@ var statusCmd = &cobra.Command{
 status of that job, or when given no arguments, it will return all the
 jobs.`,
 	Args: cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			doAllStatus()
-		} else {
-			id, err := util.ConvertAndValidateID(args[0])
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
-			doStatus(id)
+			return nil
 		}
+
+		id, err := util.ConvertAndValidateID(args[0])
+		if err != nil {
+			return err
+		}
+		doStatus(id)
+		return nil
 	},
 }
 

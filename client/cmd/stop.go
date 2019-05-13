@@ -36,13 +36,13 @@ var stopCmd = &cobra.Command{
 	Short: "Stop a job on the server",
 	Long:  `This command stops a job on the server based on ID`,
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		id, err := util.ConvertAndValidateID(args[0])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return err
 		}
 		doStop(id)
+		return nil
 	},
 }
 
