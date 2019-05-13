@@ -22,10 +22,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/spf13/cobra"
 
@@ -56,11 +54,16 @@ func doStop(id uint64) {
 	data, err := json.Marshal(stopRequest{
 		ID: id,
 	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error marshalling request: %v", err)
+		os.Exit(1)
+	}
 
 	resp, err := http.Post("http://0.0.0.0:8080/stop",
 		"application/json", bytes.NewReader(data))
 	if err != nil {
-		log.Fatalf("Error getting response: %v", err)
+		fmt.Fprintf(os.Stderr, "Error getting response: %v", err)
+		os.Exit(1)
 	}
 
 	defer resp.Body.Close()
@@ -68,10 +71,12 @@ func doStop(id uint64) {
 	if resp.StatusCode != http.StatusOK {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Fatalf("Error reading body of response: %v", err)
+			fmt.Fprintf(os.Stderr, "Error reading body of response: %v", err)
+			os.Exit(1)
 		}
 
-		log.Fatalf("Server returned %d: %v", resp.StatusCode, string(body))
+		fmt.Fprintf(os.Stderr, "Server returned %d: %v", resp.StatusCode, string(body))
+		os.Exit(1)
 	}
 }
 
