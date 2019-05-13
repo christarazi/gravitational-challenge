@@ -20,12 +20,16 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/spf13/cobra"
+
+	"github.com/christarazi/gravitational-challenge/client/util"
 )
 
 // stopCmd represents the stop command
@@ -35,8 +39,12 @@ var stopCmd = &cobra.Command{
 	Long:  `This command stops a job on the server based on ID`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Validate the args here.
-		doStop(args)
+		id, err := util.ConvertAndValidateID(args[0])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		doStop(id)
 	},
 }
 
@@ -44,12 +52,7 @@ type stopRequest struct {
 	ID uint64 `json:"id"`
 }
 
-func doStop(args []string) {
-	id, err := strconv.ParseUint(args[0], 10, 64)
-	if err != nil {
-		log.Fatalf("Error converting '%v' to integer: %v", args[0], err)
-	}
-
+func doStop(id uint64) {
 	data, err := json.Marshal(stopRequest{
 		ID: id,
 	})

@@ -24,11 +24,12 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
+
+	"github.com/christarazi/gravitational-challenge/client/util"
 )
 
 // statusCmd represents the status command
@@ -43,12 +44,9 @@ jobs.`,
 		if len(args) == 0 {
 			doAllStatus()
 		} else {
-			id, err := strconv.ParseUint(args[0], 10, 64)
+			id, err := util.ConvertAndValidateID(args[0])
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: '%s' is not an integer\n", args[0])
-				os.Exit(1)
-			} else if id <= 0 {
-				fmt.Fprintln(os.Stderr, "Error: integer can only be greater than 0")
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
 			doStatus(id)
