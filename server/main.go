@@ -19,12 +19,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/christarazi/gravitational-challenge/config"
 	"github.com/christarazi/gravitational-challenge/server/app"
 )
 
@@ -40,13 +42,11 @@ func main() {
 		syscall.SIGQUIT,
 		syscall.SIGTERM}...)
 
-	// TODO: This is hard coded for now. In the future, we can have a
-	// configurable address / port number.
-	port := "8080"
-	server := &http.Server{Addr: ":" + port, Handler: app.Router}
+	addr := fmt.Sprintf(":%d", config.Port)
+	server := &http.Server{Addr: addr, Handler: app.Router}
 
 	go func() {
-		log.Printf("Listening on http://0.0.0.0:%s\n", port)
+		log.Printf("Listening on http://%s\n", addr)
 
 		if err := server.ListenAndServe(); err != nil {
 			log.Fatal(err)

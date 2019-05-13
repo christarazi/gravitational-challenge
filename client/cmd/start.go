@@ -26,6 +26,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/christarazi/gravitational-challenge/config"
 )
 
 // startCmd represents the start command
@@ -59,8 +61,8 @@ func doStart(args []string) {
 		os.Exit(1)
 	}
 
-	resp, err := http.Post("http://0.0.0.0:8080/start",
-		"application/json", bytes.NewReader(data))
+	uri := fmt.Sprintf("http://0.0.0.0:%d/start", config.Port)
+	resp, err := http.Post(uri, "application/json", bytes.NewReader(data))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting response: %v", err)
 		os.Exit(1)

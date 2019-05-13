@@ -29,6 +29,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/christarazi/gravitational-challenge/client/util"
+	"github.com/christarazi/gravitational-challenge/config"
 )
 
 // statusCmd represents the status command
@@ -72,7 +73,7 @@ type statusResponse struct {
 }
 
 func doAllStatus() {
-	uri := fmt.Sprintf("http://0.0.0.0:8080/status")
+	uri := fmt.Sprintf("http://0.0.0.0:%d/status", config.Port)
 
 	resp := do(uri)
 	defer resp.Body.Close()

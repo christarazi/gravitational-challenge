@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/christarazi/gravitational-challenge/client/util"
+	"github.com/christarazi/gravitational-challenge/config"
 )
 
 // stopCmd represents the stop command
@@ -59,8 +60,8 @@ func doStop(id uint64) {
 		os.Exit(1)
 	}
 
-	resp, err := http.Post("http://0.0.0.0:8080/stop",
-		"application/json", bytes.NewReader(data))
+	uri := fmt.Sprintf("http://0.0.0.0:%d/stop", config.Port)
+	resp, err := http.Post(uri, "application/json", bytes.NewReader(data))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting response: %v", err)
 		os.Exit(1)
