@@ -20,7 +20,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -124,14 +123,9 @@ func do(uri string) (*http.Response, error) {
 		return nil, fmt.Errorf("Error getting response: %v", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("Error reading body of response: %v", err)
-		}
-
-		return nil, fmt.Errorf("Server returned %d: %v", resp.StatusCode, string(body))
+	err = util.CheckHTTPStatusCode(resp)
+	if err != nil {
+		return resp, err
 	}
 
 	return resp, nil

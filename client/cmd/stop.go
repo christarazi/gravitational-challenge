@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -65,13 +64,9 @@ func doStop(id uint64) error {
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("Error reading body of response: %v", err)
-		}
-
-		return fmt.Errorf("Server returned %d: %v", resp.StatusCode, string(body))
+	err = util.CheckHTTPStatusCode(resp)
+	if err != nil {
+		return err
 	}
 
 	return nil
