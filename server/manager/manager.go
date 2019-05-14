@@ -10,12 +10,12 @@ import (
 
 type Manager struct {
 	sync.Mutex
-	Jobs []*models.Job
+	jobs []*models.Job
 }
 
 func NewManager() *Manager {
 	return &Manager{
-		Jobs: []*models.Job{},
+		jobs: []*models.Job{},
 	}
 }
 
@@ -27,16 +27,23 @@ func (m *Manager) IsAJob(id uint64) bool {
 	// that (id - 1) is an index within the length of the Jobs list. Because
 	// jobs aren't removed from the list even when they've been stopped, the ID
 	// is monotonically increasing.
-	return (id - 1) < uint64(len(m.Jobs))
+	return (id - 1) < uint64(len(m.jobs))
 }
 
 // TODO: Should Job-specifc functions in here go in a dedicated separate file?
+
+func (m *Manager) GetJobs() []*models.Job {
+	m.Lock()
+	defer m.Unlock()
+
+	return m.jobs
+}
 
 func (m *Manager) GetJobByID(id uint64) *models.Job {
 	m.Lock()
 	defer m.Unlock()
 
-	return m.Jobs[id-1]
+	return m.jobs[id-1]
 }
 
 func (m *Manager) SetJobStatus(j *models.Job, status string) {
@@ -50,8 +57,8 @@ func (m *Manager) AddAndStartJob(j *models.Job) (uint64, error) {
 	m.Lock()
 	defer m.Unlock()
 
-	m.Jobs = append(m.Jobs, j)
-	j.ID = uint64(len(m.Jobs))
+	m.jobs = append(m.jobs, j)
+	j.ID = uint64(len(m.jobs))
 	j.Process = exec.Command(j.Command, j.Args...)
 	j.Status = "Running"
 
@@ -62,7 +69,7 @@ func (m *Manager) StopJobByID(id uint64) error {
 	m.Lock()
 	defer m.Unlock()
 
-	j := m.Jobs[id-1]
+	j := m.jobs[id-1]
 
 	err := j.Process.Process.Kill()
 	if err != nil {

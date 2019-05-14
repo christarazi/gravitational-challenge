@@ -42,18 +42,12 @@ func convertIDToUint(str string) (uint64, error) {
 // TODO: Should these different handlers go in their separate files?
 
 func GetAllJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
-	m.Mutex.Lock()
-
 	// TODO: Move this out into a separate file.
 	statusResponse := struct {
-		Jobs *[]*models.Job `json:"jobs"`
-	}{Jobs: &m.Jobs}
+		Jobs []*models.Job `json:"jobs"`
+	}{Jobs: m.GetJobs()}
 
-	// TODO: This is subtle. If I unlock before the encoding, there's a race
-	// condition here. Is it better to give statusResponse a copy of the list
-	// instead of using the mutex to protect the encoding?
 	err := json.NewEncoder(w).Encode(statusResponse)
-	m.Mutex.Unlock()
 
 	if err != nil {
 		msg := fmt.Sprintf("/status error: %v", err)
