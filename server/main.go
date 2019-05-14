@@ -36,11 +36,11 @@ func main() {
 
 	// Set up signal handlers for the following signals for graceful shutdown.
 	stopCh := make(chan os.Signal, 1)
-	signal.Notify(stopCh, []os.Signal{
+	signal.Notify(stopCh,
 		os.Interrupt,
 		syscall.SIGABRT,
 		syscall.SIGQUIT,
-		syscall.SIGTERM}...)
+		syscall.SIGTERM)
 
 	addr := fmt.Sprintf(":%d", config.Port)
 	server := &http.Server{Addr: addr, Handler: app.Router}
