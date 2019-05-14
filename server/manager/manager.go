@@ -28,11 +28,7 @@ func (m *Manager) IsAJob(id uint64) bool {
 	// that (id - 1) is an index within the length of the Jobs list. Because
 	// jobs aren't removed from the list even when they've been stopped, the ID
 	// is monotonically increasing.
-	if (id - 1) >= uint64(len(m.Jobs)) {
-		return false
-	}
-
-	return true
+	return (id - 1) < uint64(len(m.Jobs))
 }
 
 // TODO: Should Job-specifc functions in here go in a dedicated separate file?
