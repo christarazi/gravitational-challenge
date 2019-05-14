@@ -9,20 +9,19 @@ import (
 )
 
 type Manager struct {
-	Mutex *sync.Mutex
-	Jobs  []*models.Job
+	sync.Mutex
+	Jobs []*models.Job
 }
 
 func NewManager() *Manager {
 	return &Manager{
-		Mutex: &sync.Mutex{},
-		Jobs:  []*models.Job{},
+		Jobs: []*models.Job{},
 	}
 }
 
 func (m *Manager) IsAJob(id uint64) bool {
-	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
+	m.Lock()
+	defer m.Unlock()
 
 	// The reason we are subtracting one here is because we want to make sure
 	// that (id - 1) is an index within the length of the Jobs list. Because
@@ -34,22 +33,22 @@ func (m *Manager) IsAJob(id uint64) bool {
 // TODO: Should Job-specifc functions in here go in a dedicated separate file?
 
 func (m *Manager) GetJobByID(id uint64) *models.Job {
-	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
+	m.Lock()
+	defer m.Unlock()
 
 	return m.Jobs[id-1]
 }
 
 func (m *Manager) SetJobStatus(j *models.Job, status string) {
-	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
+	m.Lock()
+	defer m.Unlock()
 
 	j.Status = status
 }
 
 func (m *Manager) AddAndStartJob(j *models.Job) (uint64, error) {
-	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
+	m.Lock()
+	defer m.Unlock()
 
 	m.Jobs = append(m.Jobs, j)
 	j.ID = uint64(len(m.Jobs))
@@ -60,8 +59,8 @@ func (m *Manager) AddAndStartJob(j *models.Job) (uint64, error) {
 }
 
 func (m *Manager) StopJobByID(id uint64) error {
-	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
+	m.Lock()
+	defer m.Unlock()
 
 	j := m.Jobs[id-1]
 
