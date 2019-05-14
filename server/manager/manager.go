@@ -23,6 +23,11 @@ func NewManager() *Manager {
 func (m *Manager) IsAJob(id uint64) bool {
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
+
+	// The reason we are subtracting one here is because we want to make sure
+	// that (id - 1) is an index within the length of the Jobs list. Because
+	// jobs aren't removed from the list even when they've been stopped, the ID
+	// is monotonically increasing.
 	if (id - 1) >= uint64(len(m.Jobs)) {
 		return false
 	}
