@@ -30,13 +30,3 @@ type Job struct {
 
 	Process *exec.Cmd
 }
-
-func NewJob(id uint64, command string, args []string) *Job {
-	return &Job{
-		ID:      id,
-		Command: command,
-		Args:    args,
-		Status:  "",
-		Process: nil,
-	}
-}
