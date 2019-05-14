@@ -42,16 +42,14 @@ jobs.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			doAllStatus()
-			return nil
+			return doAllStatus()
 		}
 
 		id, err := util.ConvertAndValidateID(args[0])
 		if err != nil {
 			return err
 		}
-		doStatus(id)
-		return nil
+		return doStatus(id)
 	},
 }
 
@@ -72,17 +70,19 @@ type statusResponse struct {
 	Status string `json:"status"`
 }
 
-func doAllStatus() {
+func doAllStatus() error {
 	uri := fmt.Sprintf("http://0.0.0.0:%d/status", config.Port)
 
-	resp := do(uri)
+	resp, err := do(uri)
+	if err != nil {
+		return err
+	}
 	defer resp.Body.Close()
 
 	asr := &allStatusResponse{}
-	err := json.NewDecoder(resp.Body).Decode(asr)
+	err = json.NewDecoder(resp.Body).Decode(asr)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error decoding response: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("Error decoding response: %v", err)
 	}
 
 	table := tablewriter.NewWriter(os.Stdout)
@@ -94,44 +94,47 @@ func doAllStatus() {
 	}
 
 	table.Render()
+
+	return nil
 }
 
-func doStatus(id uint64) {
+func doStatus(id uint64) error {
 	uri := fmt.Sprintf("http://0.0.0.0:8080/status/%d", id)
 
-	resp := do(uri)
+	resp, err := do(uri)
+	if err != nil {
+		return err
+	}
 	defer resp.Body.Close()
 
 	sr := &statusResponse{}
-	err := json.NewDecoder(resp.Body).Decode(sr)
+	err = json.NewDecoder(resp.Body).Decode(sr)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error decoding response: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("Error decoding response: %v", err)
 	}
 
 	fmt.Printf("%s\n", sr.Status)
+
+	return nil
 }
 
-func do(uri string) *http.Response {
+func do(uri string) (*http.Response, error) {
 	resp, err := http.Get(uri)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting response: %v", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("Error getting response: %v", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading body of response: %v", err)
-			os.Exit(1)
+			return nil, fmt.Errorf("Error reading body of response: %v", err)
 		}
 
-		fmt.Fprintf(os.Stderr, "Server returned %d: %v", resp.StatusCode, string(body))
-		os.Exit(1)
+		return nil, fmt.Errorf("Server returned %d: %v", resp.StatusCode, string(body))
 	}
 
-	return resp
+	return resp, nil
 }
 
 func init() {

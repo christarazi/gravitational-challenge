@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	"github.com/spf13/cobra"
 
@@ -37,8 +36,8 @@ var startCmd = &cobra.Command{
 	Long: `This command requires a '--' after the 'start' in order to parse the
 command and arguments correctly.`,
 	Args: cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		doStart(args)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return doStart(args)
 	},
 }
 
@@ -51,21 +50,19 @@ type startResponse struct {
 	ID uint64 `json:"id"`
 }
 
-func doStart(args []string) {
+func doStart(args []string) error {
 	data, err := json.Marshal(startRequest{
 		Command: args[0],
 		Args:    args[1:],
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error marshalling request: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("Error marshalling request: %v", err)
 	}
 
 	uri := fmt.Sprintf("http://0.0.0.0:%d/start", config.Port)
 	resp, err := http.Post(uri, "application/json", bytes.NewReader(data))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting response: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("Error getting response: %v", err)
 	}
 
 	defer resp.Body.Close()
@@ -73,22 +70,21 @@ func doStart(args []string) {
 	if resp.StatusCode != http.StatusOK {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading body of response: %v", err)
-			os.Exit(1)
+			return fmt.Errorf("Error reading body of response: %v", err)
 		}
 
-		fmt.Fprintf(os.Stderr, "Server returned %d: %v", resp.StatusCode, string(body))
-		os.Exit(1)
+		return fmt.Errorf("Server returned %d: %v", resp.StatusCode, string(body))
 	}
 
 	sr := &startResponse{}
 	err = json.NewDecoder(resp.Body).Decode(sr)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error decoding response: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("Error decoding response: %v", err)
 	}
 
 	fmt.Printf("%d\n", sr.ID)
+
+	return nil
 }
 
 func init() {
