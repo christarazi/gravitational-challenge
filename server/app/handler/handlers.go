@@ -91,7 +91,7 @@ func GetJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	j := m.GetJob(id - 1)
+	j := m.GetJobByID(id)
 
 	err = json.NewEncoder(w).Encode(j)
 	if err != nil {
@@ -181,7 +181,7 @@ func StopJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = m.StopJob(id - 1)
+	err = m.StopJobByID(id)
 	if err != nil {
 		msg := fmt.Sprintf("/stop error: %v", err)
 		log.Println(msg)

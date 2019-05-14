@@ -32,11 +32,11 @@ func (m *Manager) IsAJob(id uint64) bool {
 
 // TODO: Should Job-specifc functions in here go in a dedicated separate file?
 
-func (m *Manager) GetJob(id uint64) *models.Job {
+func (m *Manager) GetJobByID(id uint64) *models.Job {
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
 
-	return m.Jobs[id]
+	return m.Jobs[id-1]
 }
 
 func (m *Manager) SetJobStatus(j *models.Job, status string) {
@@ -58,11 +58,11 @@ func (m *Manager) AddAndStartJob(j *models.Job) (uint64, error) {
 	return j.ID, j.Process.Start()
 }
 
-func (m *Manager) StopJob(id uint64) error {
+func (m *Manager) StopJobByID(id uint64) error {
 	m.Mutex.Lock()
 	defer m.Mutex.Unlock()
 
-	j := m.Jobs[id]
+	j := m.Jobs[id-1]
 
 	err := j.Process.Process.Kill()
 	if err != nil {
