@@ -47,6 +47,8 @@ func reportHTTPError(w *http.ResponseWriter, msg string, statusCode int) {
 	http.Error(*w, msg, http.StatusBadRequest)
 }
 
+// GetAllJobStatus implements the /status endpoint which returns all the jobs
+// (models.Job).
 func GetAllJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	// TODO: Move this out into a separate file.
 	statusResponse := struct {
@@ -61,6 +63,8 @@ func GetAllJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// GetJobStatus implements the /status endpoint that takes an ID of a job to
+// return the status of.
 func GetJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	log.Printf("/status vars: %v\n", vars)
@@ -89,6 +93,8 @@ func GetJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// StartJob implements the /start endpoing that takes the command and the args
+// of a job to start from the request body.
 func StartJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	j := &models.Job{}
 
@@ -122,6 +128,7 @@ func StartJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// StopJob implements the /stop endpoint which stops a job based on ID.
 func StopJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	// TODO: Move this into separate file.
 	type stopRequest struct {

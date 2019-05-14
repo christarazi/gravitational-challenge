@@ -8,30 +8,38 @@ import (
 	"github.com/christarazi/gravitational-challenge/server/models"
 )
 
+// Manager is a struct to guard `jobs` with a mutex and have an interface to
+// manipulate the list.
+//
+// The `jobs` list is accessible to the API and potentially several goroutines
+// at a given point in time, hence the need for the mutex.
 type Manager struct {
 	sync.Mutex
 	jobs []*models.Job
 }
 
+// NewManager creates an instance of the Manager struct.
 func NewManager() *Manager {
 	return &Manager{
 		jobs: []*models.Job{},
 	}
 }
 
+// IsAJob checks whether the given `id` is within the list.
 func (m *Manager) IsAJob(id uint64) bool {
 	m.Lock()
 	defer m.Unlock()
 
 	// The reason we are subtracting one here is because we want to make sure
-	// that (id - 1) is an index within the length of the Jobs list. Because
-	// jobs aren't removed from the list even when they've been stopped, the ID
-	// is monotonically increasing.
+	// that (id - 1) is an index into the `jobs` list. Because jobs aren't
+	// removed from the list even when they've been stopped, the ID is
+	// monotonically increasing.
 	return (id - 1) < uint64(len(m.jobs))
 }
 
 // TODO: Should Job-specifc functions in here go in a dedicated separate file?
 
+// GetJobs returns a copy of the `jobs` list.
 func (m *Manager) GetJobs() []*models.Job {
 	m.Lock()
 	defer m.Unlock()
@@ -39,6 +47,7 @@ func (m *Manager) GetJobs() []*models.Job {
 	return m.jobs
 }
 
+// GetJobByID will return a Job from the `jobs` list by its ID.
 func (m *Manager) GetJobByID(id uint64) *models.Job {
 	m.Lock()
 	defer m.Unlock()
@@ -46,6 +55,7 @@ func (m *Manager) GetJobByID(id uint64) *models.Job {
 	return m.jobs[id-1]
 }
 
+// SetJobStatus sets the given status on the job `j`.
 func (m *Manager) SetJobStatus(j *models.Job, status string) {
 	m.Lock()
 	defer m.Unlock()
@@ -53,6 +63,8 @@ func (m *Manager) SetJobStatus(j *models.Job, status string) {
 	j.Status = status
 }
 
+// AddAndStartJob adds a given job to the list and starts the underlying
+// process.
 func (m *Manager) AddAndStartJob(j *models.Job) (uint64, error) {
 	m.Lock()
 	defer m.Unlock()
@@ -65,6 +77,7 @@ func (m *Manager) AddAndStartJob(j *models.Job) (uint64, error) {
 	return j.ID, j.Process.Start()
 }
 
+// StopJobByID stops a job by the given ID.
 func (m *Manager) StopJobByID(id uint64) error {
 	m.Lock()
 	defer m.Unlock()

@@ -21,7 +21,7 @@ import (
 	"os/exec"
 )
 
-// Job is the main data structure that API will utilize.
+// Job is the main data structure of the API.
 type Job struct {
 	ID      uint64   `json:"id"`
 	Command string   `json:"command"`

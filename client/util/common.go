@@ -8,6 +8,8 @@ import (
 	"strconv"
 )
 
+// ConvertAndValidateID is a helper function that converts a string into a Job
+// ID. A Job ID must be greater than 0.
 func ConvertAndValidateID(str string) (uint64, error) {
 	id, err := strconv.ParseUint(str, 10, 64)
 	if err != nil {
