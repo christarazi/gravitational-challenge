@@ -39,8 +39,6 @@ func convertIDToUint(str string) (uint64, error) {
 	return id, nil
 }
 
-// TODO: Should these different handlers go in their separate files?
-
 func GetAllJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	// TODO: Move this out into a separate file.
 	statusResponse := struct {
