@@ -19,9 +19,9 @@ func ConvertAndValidateID(str string) (uint64, error) {
 	return id, nil
 }
 
-// CheckHTTPStatusCode is a helper function which helps reducde boilerplate
-// code. It checks the status code and drains the body of the response if the
-// status code is not OK. An error type is returned.
+// CheckHTTPStatusCode is a helper function to check the status code and drains
+// the body of the response if the status code is not OK. An error is
+// returned if so.
 func CheckHTTPStatusCode(resp *http.Response) error {
 	if resp.StatusCode != http.StatusOK {
 		body, err := ioutil.ReadAll(resp.Body)
