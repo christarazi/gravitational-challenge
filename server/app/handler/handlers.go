@@ -39,6 +39,14 @@ func convertIDToUint(str string) (uint64, error) {
 	return id, nil
 }
 
+func reportHTTPError(w *http.ResponseWriter, msg string, statusCode int) {
+	log.Println(msg)
+
+	// TODO: Return API specific error codes. For example, if no jobs
+	// exist, it would be 4xx.
+	http.Error(*w, msg, http.StatusBadRequest)
+}
+
 func GetAllJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	// TODO: Move this out into a separate file.
 	statusResponse := struct {
@@ -46,14 +54,9 @@ func GetAllJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request)
 	}{Jobs: m.GetJobs()}
 
 	err := json.NewEncoder(w).Encode(statusResponse)
-
 	if err != nil {
-		msg := fmt.Sprintf("/status error: %v", err)
-		log.Println(msg)
-
-		// TODO: Return API specific error codes. For example, if no jobs
-		// exist, it would be 4xx.
-		http.Error(w, msg, http.StatusBadRequest)
+		reportHTTPError(&w, fmt.Sprintf("/status error: %v", err),
+			http.StatusBadRequest)
 		return
 	}
 }
@@ -64,22 +67,15 @@ func GetJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 
 	id, err := convertIDToUint(vars["id"])
 	if err != nil {
-		msg := fmt.Sprintf("/status error: %v", err)
-		log.Println(msg)
-
-		// TODO: Return API specific error codes. For example, if no jobs
-		// exist, it would be 4xx.
-		http.Error(w, msg, http.StatusBadRequest)
+		reportHTTPError(&w, fmt.Sprintf("/status error: %v", err),
+			http.StatusBadRequest)
 		return
 	}
 
 	if !m.IsAJob(id) {
-		msg := fmt.Sprintf("/status error: job with id %v does not exist", id)
-		log.Println(msg)
-
-		// TODO: Return API specific error codes. For example, if no jobs
-		// exist, it would be 4xx.
-		http.Error(w, msg, http.StatusBadRequest)
+		reportHTTPError(&w,
+			fmt.Sprintf("/status error: job with id %v does not exist", id),
+			http.StatusBadRequest)
 		return
 	}
 
@@ -87,12 +83,8 @@ func GetJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(w).Encode(j)
 	if err != nil {
-		msg := fmt.Sprintf("/status error: %v", err)
-		log.Println(msg)
-
-		// TODO: Return API specific error codes. For example, if no jobs
-		// exist, it would be 4xx.
-		http.Error(w, msg, http.StatusBadRequest)
+		reportHTTPError(&w, fmt.Sprintf("/status error: %v", err),
+			http.StatusBadRequest)
 		return
 	}
 }
@@ -102,25 +94,16 @@ func StartJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(j)
 	if err != nil {
-		msg := fmt.Sprintf("/start error: %v", err)
-		log.Println(msg)
-
-		// TODO: Return API specific error codes. For example, if no jobs
-		// exist, it would be 4xx.
-		http.Error(w, msg, http.StatusBadRequest)
+		reportHTTPError(&w, fmt.Sprintf("/start error: %v", err),
+			http.StatusBadRequest)
 		return
 	}
 
 	id, err := m.AddAndStartJob(j)
 	if err != nil {
-		msg := fmt.Sprintf("/start failed to start job %d: %v", id, err)
-		log.Println(msg)
-
 		m.SetJobStatus(j, "Errored")
-
-		// TODO: Return API specific error codes. For example, if no jobs
-		// exist, it would be 4xx.
-		http.Error(w, msg, http.StatusBadRequest)
+		reportHTTPError(&w, fmt.Sprintf("/start failed to start job %d: %v",
+			id, err), http.StatusBadRequest)
 		return
 	}
 
@@ -133,12 +116,8 @@ func StartJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(w).Encode(startResponse{ID: id})
 	if err != nil {
-		msg := fmt.Sprintf("/start error: %v", err)
-		log.Println(msg)
-
-		// TODO: Return API specific error codes. For example, if no jobs
-		// exist, it would be 4xx.
-		http.Error(w, msg, http.StatusBadRequest)
+		reportHTTPError(&w, fmt.Sprintf("/start error: %v", err),
+			http.StatusBadRequest)
 		return
 	}
 }
@@ -153,34 +132,23 @@ func StopJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(request)
 	if err != nil {
-		msg := fmt.Sprintf("/stop error: %v", err)
-		log.Println(msg)
-
-		// TODO: Return API specific error codes. For example, if no jobs
-		// exist, it would be 4xx.
-		http.Error(w, msg, http.StatusBadRequest)
+		reportHTTPError(&w, fmt.Sprintf("/stop error: %v", err),
+			http.StatusBadRequest)
 		return
 	}
 
 	id := request.ID
 	if !m.IsAJob(id) {
-		msg := fmt.Sprintf("/stop error: job id %d does not exist", id)
-		log.Println(msg)
-
-		// TODO: Return API specific error codes. For example, if no jobs
-		// exist, it would be 4xx.
-		http.Error(w, msg, http.StatusBadRequest)
+		reportHTTPError(&w,
+			fmt.Sprintf("/stop error: job id %d does not exist", id),
+			http.StatusBadRequest)
 		return
 	}
 
 	err = m.StopJobByID(id)
 	if err != nil {
-		msg := fmt.Sprintf("/stop error: %v", err)
-		log.Println(msg)
-
-		// TODO: Return API specific error codes. For example, if no jobs
-		// exist, it would be 4xx.
-		http.Error(w, msg, http.StatusBadRequest)
+		reportHTTPError(&w, fmt.Sprintf("/stop error: %v", err),
+			http.StatusBadRequest)
 		return
 	}
 
@@ -188,12 +156,8 @@ func StopJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(w).Encode([]byte{})
 	if err != nil {
-		msg := fmt.Sprintf("/stop error: %v", err)
-		log.Println(msg)
-
-		// TODO: Return API specific error codes. For example, if no jobs
-		// exist, it would be 4xx.
-		http.Error(w, msg, http.StatusBadRequest)
+		reportHTTPError(&w, fmt.Sprintf("/stop error: %v", err),
+			http.StatusBadRequest)
 		return
 	}
 }
