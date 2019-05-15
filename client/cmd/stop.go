@@ -27,6 +27,7 @@ import (
 
 	"github.com/christarazi/gravitational-challenge/client/util"
 	"github.com/christarazi/gravitational-challenge/config"
+	"github.com/christarazi/gravitational-challenge/models"
 )
 
 // stopCmd represents the stop command
@@ -44,14 +45,8 @@ var stopCmd = &cobra.Command{
 	},
 }
 
-type stopRequest struct {
-	ID uint64 `json:"id"`
-}
-
 func doStop(id uint64) error {
-	data, err := json.Marshal(stopRequest{
-		ID: id,
-	})
+	data, err := json.Marshal(models.StopRequest{ID: id})
 	if err != nil {
 		return fmt.Errorf("Error marshalling request: %v", err)
 	}

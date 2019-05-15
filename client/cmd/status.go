@@ -29,6 +29,7 @@ import (
 
 	"github.com/christarazi/gravitational-challenge/client/util"
 	"github.com/christarazi/gravitational-challenge/config"
+	"github.com/christarazi/gravitational-challenge/models"
 )
 
 // statusCmd represents the status command
@@ -52,23 +53,6 @@ jobs.`,
 	},
 }
 
-// This is the response data structure when the user does not supply a Job ID.
-// All the jobs will be returned.
-type allStatusResponse struct {
-	Jobs []struct {
-		ID      uint64   `json:"id"`
-		Command string   `json:"command"`
-		Args    []string `json:"args"`
-		Status  string   `json:"status"`
-	} `json:"jobs"`
-}
-
-// This is the response data structure when the user supplies a Job ID. The
-// single status of the job will be returned.
-type statusResponse struct {
-	Status string `json:"status"`
-}
-
 func doAllStatus() error {
 	uri := fmt.Sprintf("http://0.0.0.0:%d/status", config.Port)
 
@@ -78,7 +62,7 @@ func doAllStatus() error {
 	}
 	defer resp.Body.Close()
 
-	asr := &allStatusResponse{}
+	asr := &models.AllStatusResponse{}
 	err = json.NewDecoder(resp.Body).Decode(asr)
 	if err != nil {
 		return fmt.Errorf("Error decoding response: %v", err)
@@ -106,7 +90,7 @@ func doStatus(id uint64) error {
 	}
 	defer resp.Body.Close()
 
-	sr := &statusResponse{}
+	sr := &models.StatusResponse{}
 	err = json.NewDecoder(resp.Body).Decode(sr)
 	if err != nil {
 		return fmt.Errorf("Error decoding response: %v", err)

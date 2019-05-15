@@ -24,8 +24,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/christarazi/gravitational-challenge/models"
 	"github.com/christarazi/gravitational-challenge/server/manager"
-	"github.com/christarazi/gravitational-challenge/server/models"
 
 	"github.com/gorilla/mux"
 )
@@ -115,12 +115,7 @@ func StartJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("/start: running job with id %d", id)
 
-	// TODO: Move this out into a separate file.
-	type startResponse struct {
-		ID uint64 `json:"id"`
-	}
-
-	err = json.NewEncoder(w).Encode(startResponse{ID: id})
+	err = json.NewEncoder(w).Encode(models.StartResponse{ID: id})
 	if err != nil {
 		reportHTTPError(&w, fmt.Sprintf("/start error: %v", err),
 			http.StatusBadRequest)
@@ -130,12 +125,7 @@ func StartJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 
 // StopJob implements the /stop endpoint which stops a job based on ID.
 func StopJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
-	// TODO: Move this into separate file.
-	type stopRequest struct {
-		ID uint64 `json:"id"`
-	}
-
-	request := &stopRequest{}
+	request := &models.StopRequest{}
 
 	err := json.NewDecoder(r.Body).Decode(request)
 	if err != nil {

@@ -27,6 +27,7 @@ import (
 
 	"github.com/christarazi/gravitational-challenge/client/util"
 	"github.com/christarazi/gravitational-challenge/config"
+	"github.com/christarazi/gravitational-challenge/models"
 )
 
 // startCmd represents the start command
@@ -41,17 +42,8 @@ command and arguments correctly.`,
 	},
 }
 
-type startRequest struct {
-	Command string   `json:"command"`
-	Args    []string `json:"args"`
-}
-
-type startResponse struct {
-	ID uint64 `json:"id"`
-}
-
 func doStart(args []string) error {
-	data, err := json.Marshal(startRequest{
+	data, err := json.Marshal(models.StartRequest{
 		Command: args[0],
 		Args:    args[1:],
 	})
@@ -72,7 +64,7 @@ func doStart(args []string) error {
 		return err
 	}
 
-	sr := &startResponse{}
+	sr := &models.StartResponse{}
 	err = json.NewDecoder(resp.Body).Decode(sr)
 	if err != nil {
 		return fmt.Errorf("Error decoding response: %v", err)

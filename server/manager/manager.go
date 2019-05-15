@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/christarazi/gravitational-challenge/server/models"
+	"github.com/christarazi/gravitational-challenge/models"
 )
 
 // Manager is a struct to guard `jobs` with a mutex and have an interface to
