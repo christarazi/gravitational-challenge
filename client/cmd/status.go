@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
@@ -72,8 +73,11 @@ func doAllStatus() error {
 	table.SetHeader([]string{"ID", "Command", "Args", "Status"})
 
 	for _, v := range asr.Jobs {
-		str := fmt.Sprintf("%d|%s|%v|%s", v.ID, v.Command, v.Args, v.Status)
-		table.Append(strings.Split(str, "|"))
+		table.Append([]string{
+			strconv.FormatUint(v.ID, 10),
+			v.Command,
+			strings.Join(v.Args, ","),
+			v.Status})
 	}
 
 	table.Render()
