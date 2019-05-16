@@ -50,11 +50,7 @@ func reportHTTPError(w *http.ResponseWriter, msg string, statusCode int) {
 // GetAllJobStatus implements the /status endpoint which returns all the jobs
 // (models.Job).
 func GetAllJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
-	// TODO: Move this out into a separate file.
-	statusResponse := struct {
-		Jobs []*models.Job `json:"jobs"`
-	}{Jobs: m.GetJobs()}
-
+	statusResponse := models.AllStatusResponse{Jobs: m.GetJobs()}
 	err := json.NewEncoder(w).Encode(statusResponse)
 	if err != nil {
 		reportHTTPError(&w, fmt.Sprintf("/status error: %v", err),

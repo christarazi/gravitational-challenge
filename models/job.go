@@ -34,14 +34,7 @@ type Job struct {
 // AllStatusResponse is the JSON structure for the /status endpoint when the
 // user does not supply a Job ID.  All the jobs will be returned.
 type AllStatusResponse struct {
-	Jobs []struct {
-		ID      uint64   `json:"id"`
-		Command string   `json:"command"`
-		Args    []string `json:"args"`
-		Status  string   `json:"status"`
-	} `json:"jobs"`
-
-	// Jobs []Job `json:"jobs"`
+	Jobs []*Job `json:"jobs"`
 }
 
 // StatusResponse is the JSON response structure for the /status endpoint when
