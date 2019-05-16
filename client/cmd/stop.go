@@ -18,16 +18,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"net/http"
-
 	"github.com/spf13/cobra"
 
+	"github.com/christarazi/gravitational-challenge/client/api"
 	"github.com/christarazi/gravitational-challenge/client/util"
-	"github.com/christarazi/gravitational-challenge/config"
-	"github.com/christarazi/gravitational-challenge/models"
 )
 
 // stopCmd represents the stop command
@@ -46,25 +40,7 @@ var stopCmd = &cobra.Command{
 }
 
 func doStop(id uint64) error {
-	data, err := json.Marshal(models.StopRequest{ID: id})
-	if err != nil {
-		return fmt.Errorf("Error marshalling request: %v", err)
-	}
-
-	uri := fmt.Sprintf("http://0.0.0.0:%d/stop", config.Port)
-	resp, err := http.Post(uri, "application/json", bytes.NewReader(data))
-	if err != nil {
-		return fmt.Errorf("Error getting response: %v", err)
-	}
-
-	defer resp.Body.Close()
-
-	err = util.CheckHTTPStatusCode(resp)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return api.NewClient([]string{}).Stop(id)
 }
 
 func init() {

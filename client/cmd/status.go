@@ -18,19 +18,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
 
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
-	"github.com/christarazi/gravitational-challenge/client/util"
-	"github.com/christarazi/gravitational-challenge/config"
-	"github.com/christarazi/gravitational-challenge/models"
+	"github.com/christarazi/gravitational-challenge/client/api"
 )
 
 // statusCmd represents the status command
@@ -42,81 +34,13 @@ status of that job, or when given no arguments, it will return all the
 jobs.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			return doAllStatus()
-		}
-
-		id, err := util.ConvertAndValidateID(args[0])
+		s, err := api.NewClient(args).Status()
 		if err != nil {
 			return err
 		}
-		return doStatus(id)
+		fmt.Printf("%s\n", s)
+		return nil
 	},
-}
-
-func doAllStatus() error {
-	uri := fmt.Sprintf("http://0.0.0.0:%d/status", config.Port)
-
-	resp, err := do(uri)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	asr := &models.AllStatusResponse{}
-	err = json.NewDecoder(resp.Body).Decode(asr)
-	if err != nil {
-		return fmt.Errorf("Error decoding response: %v", err)
-	}
-
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"ID", "Command", "Args", "Status"})
-
-	for _, v := range asr.Jobs {
-		table.Append([]string{
-			strconv.FormatUint(v.ID, 10),
-			v.Command,
-			strings.Join(v.Args, ","),
-			v.Status})
-	}
-
-	table.Render()
-
-	return nil
-}
-
-func doStatus(id uint64) error {
-	uri := fmt.Sprintf("http://0.0.0.0:8080/status/%d", id)
-
-	resp, err := do(uri)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	sr := &models.StatusResponse{}
-	err = json.NewDecoder(resp.Body).Decode(sr)
-	if err != nil {
-		return fmt.Errorf("Error decoding response: %v", err)
-	}
-
-	fmt.Printf("%s\n", sr.Status)
-
-	return nil
-}
-
-func do(uri string) (*http.Response, error) {
-	resp, err := http.Get(uri)
-	if err != nil {
-		return nil, fmt.Errorf("Error getting response: %v", err)
-	}
-
-	err = util.CheckHTTPStatusCode(resp)
-	if err != nil {
-		return resp, err
-	}
-
-	return resp, nil
 }
 
 func init() {

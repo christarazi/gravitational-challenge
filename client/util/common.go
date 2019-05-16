@@ -3,8 +3,6 @@ package util
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strconv"
 )
 
@@ -19,20 +17,4 @@ func ConvertAndValidateID(str string) (uint64, error) {
 	}
 
 	return id, nil
-}
-
-// CheckHTTPStatusCode is a helper function to check the status code and drains
-// the body of the response if the status code is not OK. An error is
-// returned if so.
-func CheckHTTPStatusCode(resp *http.Response) error {
-	if resp.StatusCode != http.StatusOK {
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("Error reading body of response: %v", err)
-		}
-
-		return fmt.Errorf("Server returned %d: %v", resp.StatusCode, string(body))
-	}
-
-	return nil
 }

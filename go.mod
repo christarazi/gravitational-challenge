@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/gorilla/mux v1.7.1
+	github.com/hashicorp/errwrap v1.0.0
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/olekukonko/tablewriter v0.0.1

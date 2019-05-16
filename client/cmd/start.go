@@ -18,16 +18,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/spf13/cobra"
 
-	"github.com/christarazi/gravitational-challenge/client/util"
-	"github.com/christarazi/gravitational-challenge/config"
-	"github.com/christarazi/gravitational-challenge/models"
+	"github.com/christarazi/gravitational-challenge/client/api"
 )
 
 // startCmd represents the start command
@@ -43,34 +38,12 @@ command and arguments correctly.`,
 }
 
 func doStart(args []string) error {
-	data, err := json.Marshal(models.StartRequest{
-		Command: args[0],
-		Args:    args[1:],
-	})
-	if err != nil {
-		return fmt.Errorf("Error marshalling request: %v", err)
-	}
-
-	uri := fmt.Sprintf("http://0.0.0.0:%d/start", config.Port)
-	resp, err := http.Post(uri, "application/json", bytes.NewReader(data))
-	if err != nil {
-		return fmt.Errorf("Error getting response: %v", err)
-	}
-
-	defer resp.Body.Close()
-
-	err = util.CheckHTTPStatusCode(resp)
+	id, err := api.NewClient(args).Start()
 	if err != nil {
 		return err
 	}
 
-	sr := &models.StartResponse{}
-	err = json.NewDecoder(resp.Body).Decode(sr)
-	if err != nil {
-		return fmt.Errorf("Error decoding response: %v", err)
-	}
-
-	fmt.Printf("%d\n", sr.ID)
+	fmt.Printf("%d\n", id)
 
 	return nil
 }
