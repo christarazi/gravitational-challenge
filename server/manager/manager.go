@@ -3,16 +3,21 @@ package manager
 import (
 	"fmt"
 	"os/exec"
+	"strconv"
 	"sync"
 
 	"github.com/christarazi/gravitational-challenge/models"
 )
 
-// Manager is a struct to guard `jobs` with a mutex and have an interface to
-// manipulate the list.
+// Manager is a struct that stores all the jobs on the server. The `jobs` list
+// is protected by a mutex which is used when accessing and manipulating the
+// list.
 //
-// The `jobs` list is accessible to the API and potentially several goroutines
-// at a given point in time, hence the need for the mutex.
+// Potentially several goroutines can be serving requests at any point in time,
+// hence the need for the mutex.
+//
+// There are methods-on-struct defined for Manager to provide access to the
+// `jobs`.
 type Manager struct {
 	sync.Mutex
 	jobs []*models.Job
@@ -23,6 +28,14 @@ func NewManager() *Manager {
 	return &Manager{
 		jobs: []*models.Job{},
 	}
+}
+
+// Jobs returns a copy of the `jobs` list.
+func (m *Manager) Jobs() []*models.Job {
+	m.Lock()
+	defer m.Unlock()
+
+	return m.jobs
 }
 
 // IsAJob checks whether the given `id` is within the list.
@@ -37,57 +50,60 @@ func (m *Manager) IsAJob(id uint64) bool {
 	return (id - 1) < uint64(len(m.jobs))
 }
 
-// TODO: Should Job-specifc functions in here go in a dedicated separate file?
-
-// GetJobs returns a copy of the `jobs` list.
-func (m *Manager) GetJobs() []*models.Job {
+// JobStatus retrieves the status of a job with the requested ID.
+func (m *Manager) JobStatus(rawID string) (*models.Job, error) {
 	m.Lock()
 	defer m.Unlock()
 
-	return m.jobs
+	id, err := convertIDToUint(rawID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !m.IsAJob(id) {
+		return nil, fmt.Errorf("job with id %v does not exist", id)
+	}
+
+	return m.job(id), nil
 }
 
-// GetJobByID will return a Job from the `jobs` list by its ID.
-func (m *Manager) GetJobByID(id uint64) *models.Job {
-	m.Lock()
-	defer m.Unlock()
-
-	return m.jobs[id-1]
-}
-
-// SetJobStatus sets the given status on the job `j`.
-func (m *Manager) SetJobStatus(j *models.Job, status string) {
-	m.Lock()
-	defer m.Unlock()
-
-	j.Status = status
-}
-
-// AddAndStartJob adds a given job to the list and starts the underlying
-// process.
-func (m *Manager) AddAndStartJob(j *models.Job) (uint64, error) {
+// StartJob adds a given job to the list and starts the underlying process.
+func (m *Manager) StartJob(j *models.Job) (uint64, error) {
 	m.Lock()
 	defer m.Unlock()
 
 	m.jobs = append(m.jobs, j)
 	j.ID = uint64(len(m.jobs))
 	j.Process = exec.Command(j.Command, j.Args...)
-	j.Status = "Running"
 
-	return j.ID, j.Process.Start()
+	err := j.Process.Start()
+	if err != nil {
+		err = fmt.Errorf("failed to start job %d: %v", j.ID, err)
+		j.Status = "Errored"
+	} else {
+		j.Status = "Running"
+	}
+
+	return j.ID, err
 }
 
-// StopJobByID stops a job by the given ID.
-func (m *Manager) StopJobByID(id uint64) error {
+// StopJob stops a job by the given ID.
+func (m *Manager) StopJob(id uint64) error {
 	m.Lock()
 	defer m.Unlock()
 
-	j := m.jobs[id-1]
+	if !m.IsAJob(id) {
+		return fmt.Errorf("job id %d does not exist", id)
+	}
 
+	return m.stop(m.jobs[id-1])
+}
+
+func (m *Manager) stop(j *models.Job) error {
 	err := j.Process.Process.Kill()
 	if err != nil {
 		j.Status = "Failed to kill"
-		return err
+		return fmt.Errorf("failed to kill job %d: %v", j.ID, err)
 	}
 
 	// TODO: We still want to wait on the process to retrieve its correct exit
@@ -105,4 +121,17 @@ func (m *Manager) StopJobByID(id uint64) error {
 		j.Process.ProcessState.ExitCode())
 
 	return nil
+}
+
+func (m *Manager) job(id uint64) *models.Job {
+	return m.jobs[id-1]
+}
+
+func convertIDToUint(str string) (uint64, error) {
+	id, err := strconv.ParseUint(str, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
 }

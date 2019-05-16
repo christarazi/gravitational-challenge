@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/christarazi/gravitational-challenge/models"
 	"github.com/christarazi/gravitational-challenge/server/manager"
@@ -30,27 +29,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func convertIDToUint(str string) (uint64, error) {
-	id, err := strconv.ParseUint(str, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
-}
-
-func reportHTTPError(w *http.ResponseWriter, msg string, statusCode int) {
-	log.Println(msg)
-
-	// TODO: Return API specific error codes. For example, if no jobs
-	// exist, it would be 4xx.
-	http.Error(*w, msg, http.StatusBadRequest)
-}
-
 // GetAllJobStatus implements the /status endpoint which returns all the jobs
 // (models.Job).
 func GetAllJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
-	statusResponse := models.AllStatusResponse{Jobs: m.GetJobs()}
+	statusResponse := models.AllStatusResponse{Jobs: m.Jobs()}
 	err := json.NewEncoder(w).Encode(statusResponse)
 	if err != nil {
 		reportHTTPError(&w, fmt.Sprintf("/status error: %v", err),
@@ -62,24 +44,12 @@ func GetAllJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request)
 // GetJobStatus implements the /status endpoint that takes an ID of a job to
 // return the status of.
 func GetJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	log.Printf("/status vars: %v\n", vars)
-
-	id, err := convertIDToUint(vars["id"])
+	j, err := m.JobStatus(mux.Vars(r)["id"])
 	if err != nil {
 		reportHTTPError(&w, fmt.Sprintf("/status error: %v", err),
 			http.StatusBadRequest)
 		return
 	}
-
-	if !m.IsAJob(id) {
-		reportHTTPError(&w,
-			fmt.Sprintf("/status error: job with id %v does not exist", id),
-			http.StatusBadRequest)
-		return
-	}
-
-	j := m.GetJobByID(id)
 
 	err = json.NewEncoder(w).Encode(j)
 	if err != nil {
@@ -89,7 +59,7 @@ func GetJobStatus(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// StartJob implements the /start endpoing that takes the command and the args
+// StartJob implements the /start endpoint that takes the command and the args
 // of a job to start from the request body.
 func StartJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	j := &models.Job{}
@@ -101,11 +71,10 @@ func StartJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := m.AddAndStartJob(j)
+	id, err := m.StartJob(j)
 	if err != nil {
-		m.SetJobStatus(j, "Errored")
-		reportHTTPError(&w, fmt.Sprintf("/start failed to start job %d: %v",
-			id, err), http.StatusBadRequest)
+		reportHTTPError(&w, fmt.Sprintf("/start error: %v", err),
+			http.StatusBadRequest)
 		return
 	}
 
@@ -131,14 +100,7 @@ func StopJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := request.ID
-	if !m.IsAJob(id) {
-		reportHTTPError(&w,
-			fmt.Sprintf("/stop error: job id %d does not exist", id),
-			http.StatusBadRequest)
-		return
-	}
-
-	err = m.StopJobByID(id)
+	err = m.StopJob(id)
 	if err != nil {
 		reportHTTPError(&w, fmt.Sprintf("/stop error: %v", err),
 			http.StatusBadRequest)
@@ -153,4 +115,12 @@ func StopJob(m *manager.Manager, w http.ResponseWriter, r *http.Request) {
 			http.StatusBadRequest)
 		return
 	}
+}
+
+func reportHTTPError(w *http.ResponseWriter, msg string, statusCode int) {
+	log.Println(msg)
+
+	// TODO: Return API specific error codes. For example, if no jobs
+	// exist, it would be 4xx.
+	http.Error(*w, msg, http.StatusBadRequest)
 }
