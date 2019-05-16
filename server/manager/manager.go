@@ -38,18 +38,6 @@ func (m *Manager) Jobs() []*models.Job {
 	return m.jobs
 }
 
-// IsAJob checks whether the given `id` is within the list.
-func (m *Manager) IsAJob(id uint64) bool {
-	m.Lock()
-	defer m.Unlock()
-
-	// The reason we are subtracting one here is because we want to make sure
-	// that (id - 1) is an index into the `jobs` list. Because jobs aren't
-	// removed from the list even when they've been stopped, the ID is
-	// monotonically increasing.
-	return (id - 1) < uint64(len(m.jobs))
-}
-
 // JobStatus retrieves the status of a job with the requested ID.
 func (m *Manager) JobStatus(rawID string) (*models.Job, error) {
 	m.Lock()
@@ -92,7 +80,7 @@ func (m *Manager) StopJob(id uint64) error {
 	m.Lock()
 	defer m.Unlock()
 
-	if !m.IsAJob(id) {
+	if !m.isAJob(id) {
 		return fmt.Errorf("job id %d does not exist", id)
 	}
 
@@ -121,6 +109,15 @@ func (m *Manager) stop(j *models.Job) error {
 		j.Process.ProcessState.ExitCode())
 
 	return nil
+}
+
+// isAJob checks whether the given `id` is within the list.
+func (m *Manager) isAJob(id uint64) bool {
+	// The reason we are subtracting one here is because we want to make sure
+	// that (id - 1) is an index into the `jobs` list. Because jobs aren't
+	// removed from the list even when they've been stopped, the ID is
+	// monotonically increasing.
+	return (id - 1) < uint64(len(m.jobs))
 }
 
 func (m *Manager) job(id uint64) *models.Job {
