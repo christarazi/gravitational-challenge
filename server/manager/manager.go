@@ -2,9 +2,13 @@ package manager
 
 import (
 	"fmt"
+	"log"
 	"os/exec"
 	"strconv"
+	"strings"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/christarazi/gravitational-challenge/models"
 )
@@ -48,7 +52,7 @@ func (m *Manager) JobStatus(rawID string) (*models.Job, error) {
 		return nil, err
 	}
 
-	if !m.IsAJob(id) {
+	if !m.isAJob(id) {
 		return nil, fmt.Errorf("job with id %v does not exist", id)
 	}
 
@@ -84,27 +88,60 @@ func (m *Manager) StopJob(id uint64) error {
 		return fmt.Errorf("job id %d does not exist", id)
 	}
 
-	return m.stop(m.jobs[id-1])
+	j := m.job(id)
+	if strings.Contains(j.Status, "Stopped") || strings.Contains(j.Status, "Killed") {
+		log.Printf("manager-stop: job %d already stopped", id)
+		return nil
+	}
+
+	return m.stop(j)
 }
 
 func (m *Manager) stop(j *models.Job) error {
-	err := j.Process.Process.Kill()
-	if err != nil {
-		j.Status = "Failed to kill"
-		return fmt.Errorf("failed to kill job %d: %v", j.ID, err)
+	var (
+		wg   sync.WaitGroup
+		done chan error
+		err  error
+	)
+
+	// Send a SIGTERM to the process so that it has a chance to clean up and
+	// try to wait 5 seconds before it we forcefully kill it via SIGKILL.
+
+	wg.Add(1)
+	done = make(chan error, 1)
+	go func() {
+		if err := j.Process.Process.Signal(syscall.SIGTERM); err != nil {
+			// We are not going to handle the error here because we can rely on
+			// the timeout to eventually send a SIGKILL if the process is still
+			// running. Just log a message for tracing.
+			log.Println("manager-stop: failed to send SIGTERM")
+		}
+		done <- j.Process.Wait()
+		wg.Done()
+	}()
+
+	select {
+	// This value is hardcoded for now. In the future, this can be a
+	// configurable value.
+	case <-time.After(5 * time.Second):
+		log.Println("manager-stop: timeout reached, sending SIGKILL")
+
+		if err = j.Process.Process.Kill(); err != nil {
+			log.Printf("manager-stop: failed to kill process: %v", err)
+
+			j.Status = "Failed to kill"
+			return fmt.Errorf("failed to kill process: %v", err)
+		}
+
+		log.Println("manager-stop: job killed forcefully")
+
+		j.Status = "Killed"
+	case err = <-done:
+		log.Printf("manager-stop: job terminated: error: %v", err)
 	}
 
-	// TODO: We still want to wait on the process to retrieve its correct exit
-	// code. Need to figure out how to best do this without blocking the
-	// request.
-	// err = j.Process.Wait()
-	// if err != nil {
-	// 	j.Status = "Failed to wait"
-	// 	return err
-	// }
+	wg.Wait()
 
-	// TODO: For now the exit code will always be -1 until we do the above
-	// todo.
 	j.Status = fmt.Sprintf("Stopped (ec: %d)",
 		j.Process.ProcessState.ExitCode())
 

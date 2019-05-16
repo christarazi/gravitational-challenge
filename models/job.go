@@ -28,7 +28,7 @@ type Job struct {
 	Args    []string `json:"args"`
 	Status  string   `json:"status"`
 
-	Process *exec.Cmd
+	Process *exec.Cmd `json:"-"`
 }
 
 // AllStatusResponse is the JSON structure for the /status endpoint when the
