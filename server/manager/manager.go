@@ -64,17 +64,17 @@ func (m *Manager) StartJob(j *models.Job) (uint64, error) {
 	m.Lock()
 	defer m.Unlock()
 
-	m.jobs = append(m.jobs, j)
-	j.ID = uint64(len(m.jobs))
 	j.Process = exec.Command(j.Command, j.Args...)
 
 	err := j.Process.Start()
 	if err != nil {
-		err = fmt.Errorf("failed to start job %d: %v", j.ID, err)
-		j.Status = "Errored"
+		return 0, fmt.Errorf("failed to start job: %v", err)
 	} else {
 		j.Status = "Running"
 	}
+
+	m.jobs = append(m.jobs, j)
+	j.ID = uint64(len(m.jobs))
 
 	return j.ID, err
 }
